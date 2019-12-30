@@ -43,7 +43,7 @@ public class ApiClientSingleton extends Application {
                     builder.method(original.method(), original.body());
 //                    builder.header("Accept", "application/json");
                     if (TOKEN.length() > 0)
-                        builder.header("Authorization", TOKEN);
+                        builder.header("Authorization", "Bearer "+TOKEN);
                     return chain.proceed(builder.build());
                 }
             });

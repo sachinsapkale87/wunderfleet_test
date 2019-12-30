@@ -47,6 +47,7 @@ import com.google.gson.Gson;
 import com.sachin.wunderfleet.R;
 import com.sachin.wunderfleet.model.CarModel;
 import com.sachin.wunderfleet.net.OnApiResponseListner;
+import com.sachin.wunderfleet.net.RequestCode;
 import com.sachin.wunderfleet.net.rxtask.ApiTask;
 import com.sachin.wunderfleet.net.rxtask.ApiTaskInit;
 import com.sachin.wunderfleet.utilities.AppUtilsMethods;
@@ -82,6 +83,7 @@ public class MapFragment extends Fragment implements OnApiResponseListner, OnMap
     private Location userLocation;
     private ProgressDialog mProgressDialog;
     private HashMap<Integer, Marker> mapMarker;
+    private int click=0;
 
     @Override
     public void onAttach(Context context) {
@@ -109,58 +111,60 @@ public class MapFragment extends Fragment implements OnApiResponseListner, OnMap
 
     @Override
     public void onResponseComplete(Object clsGson, int requestCode, int responseCode) {
-        stopProgress();
-        Observable.fromIterable((ArrayList<CarModel>) clsGson)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<CarModel>() {
+        if (requestCode == RequestCode.GET_CAR_OBJECTS_ALL) {
+            stopProgress();
+            Observable.fromIterable((ArrayList<CarModel>) clsGson)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Observer<CarModel>() {
 
 
-                    @Override
-                    public void onSubscribe(Disposable d) {
-                        mapMarker = new HashMap<>();
-                        builder = new LatLngBounds.Builder();
-                        if (userLocation != null) {
-                            Marker userMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(
-                                    userLocation.getLatitude(), userLocation.getLongitude())).title("You are here")
-                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)));
-                            userMarker.setTag(000);
-                            mapMarker.put(000, userMarker);
-                            builder.include(userMarker.getPosition());
-                        }
-                    }
-
-                    @Override
-                    public void onNext(CarModel carModel) {
-                        if (carModel != null && carModel.getLon() != 0) {
-                            Marker fleetAdd = mMap.addMarker(new MarkerOptions().position(new LatLng(
-                                    carModel.getLat(), carModel.getLon())).title(carModel.getTitle()));
-                            fleetAdd.setTag(carModel.getCarId());
-                            mapMarker.put(carModel.getCarId(), fleetAdd);
-                            builder.include(fleetAdd.getPosition());
-                        }
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        int padding = 150;
-                        LatLngBounds bounds = builder.build();
-                        final CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, padding);
-                        mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
-                            @Override
-                            public void onMapLoaded() {
-                                mMap.animateCamera(cu);
-
+                        @Override
+                        public void onSubscribe(Disposable d) {
+                            mapMarker = new HashMap<>();
+                            builder = new LatLngBounds.Builder();
+                            if (userLocation != null) {
+                                Marker userMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(
+                                        userLocation.getLatitude(), userLocation.getLongitude())).title("You are here")
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)));
+                                userMarker.setTag(000);
+                                mapMarker.put(000, userMarker);
+                                builder.include(userMarker.getPosition());
                             }
-                        });
+                        }
 
-                    }
-                });
+                        @Override
+                        public void onNext(CarModel carModel) {
+                            if (carModel != null && carModel.getLon() != 0) {
+                                Marker fleetAdd = mMap.addMarker(new MarkerOptions().position(new LatLng(
+                                        carModel.getLat(), carModel.getLon())).title(carModel.getTitle()));
+                                fleetAdd.setTag(carModel.getCarId());
+                                mapMarker.put(carModel.getCarId(), fleetAdd);
+                                builder.include(fleetAdd.getPosition());
+                            }
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            int padding = 150;
+                            LatLngBounds bounds = builder.build();
+                            final CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, padding);
+                            mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
+                                @Override
+                                public void onMapLoaded() {
+                                    mMap.animateCamera(cu);
+
+                                }
+                            });
+
+                        }
+                    });
+        }
     }
 
     @Override
@@ -305,11 +309,18 @@ public class MapFragment extends Fragment implements OnApiResponseListner, OnMap
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        System.out.println("----getmarker---- " + marker.getTitle() + "|" + marker.getTag());
-        Map<Integer, Marker> map = mapMarker;
-        map.remove((Integer) marker.getTag());
-        for (Marker value : map.values()) {
-            value.setVisible(false);
+        if(click==0) {
+            System.out.println("----getmarker---- " + marker.getTitle() + "|" + marker.getTag());
+            Map<Integer, Marker> map = mapMarker;
+            map.remove((Integer) marker.getTag());
+            for (Marker value : map.values()) {
+                value.setVisible(false);
+            }
+            click=1;
+        }else{
+            FragmentManager fm = getChildFragmentManager();
+            CarDetailsDialogFragment carDetailsDialogFragment = CarDetailsDialogFragment.newInstance((Integer) marker.getTag());
+            carDetailsDialogFragment.show(fm,"custom_dialog");
         }
         return false;
 
