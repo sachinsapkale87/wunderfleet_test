@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -37,6 +38,7 @@ public class CarDetailsDialogFragment extends DialogFragment implements OnApiRes
     private TextView carid_tv, title_tv, iscleant_tv, liceplate_tv, fuellevel_tv, vehsid_tv, pricingtime_tv, priceparking_tv, isactivated_tv, locationid_tv, add_tv, zipcode_tv, city_tv, latlong_tv, resvstate_tv, damagedesc_tv, iscardam_tv;
     private TextView vehicle_head_tv;
     private Button cancel_btn, qrent_btn;
+    private RelativeLayout prg_rel;
 
 
     @Override
@@ -70,6 +72,7 @@ public class CarDetailsDialogFragment extends DialogFragment implements OnApiRes
 
     private void initialize(View view) {
         initProgressbar();
+        prg_rel = (RelativeLayout) view.findViewById(R.id.prg_rel);
         carImageView = (ImageView) view.findViewById(R.id.car_imgv);
         carid_tv = (TextView) view.findViewById(R.id.carid_tv);
         title_tv = (TextView) view.findViewById(R.id.title_tv);
@@ -93,13 +96,12 @@ public class CarDetailsDialogFragment extends DialogFragment implements OnApiRes
         vehicle_head_tv = (TextView) view.findViewById(R.id.vehicle_head_tv);
         cancel_btn.setOnClickListener(this);
         qrent_btn.setOnClickListener(this);
-        showProgress("Loading, Please wait...");
         new ApiTaskInit().getApiTask().getCarObjectsById(carId, this);
 
     }
 
     public void initProgressbar() {
-        mProgressDialog = new ProgressDialog(mcontext);
+        mProgressDialog = new ProgressDialog(getActivity());
         mProgressDialog.setIndeterminate(false);
         mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         mProgressDialog.setCancelable(false);
@@ -131,6 +133,7 @@ public class CarDetailsDialogFragment extends DialogFragment implements OnApiRes
     @Override
     public void onResponseComplete(Object clsGson, int requestCode, int responseCode) {
         stopProgress();
+        prg_rel.setVisibility(View.GONE);
         if (requestCode == RequestCode.GET_CAR_OBJECTS_BY_ID) {
             new LoadDetailsInAsync().execute(clsGson);
         } else if (requestCode == RequestCode.POST_QUICK_RENT) {
