@@ -5,11 +5,9 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.LayoutInflater;
@@ -20,7 +18,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
@@ -34,48 +31,34 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.gson.Gson;
 import com.sachin.wunderfleet.R;
 import com.sachin.wunderfleet.model.CarModel;
-import com.sachin.wunderfleet.net.OnApiResponseListner;
-import com.sachin.wunderfleet.net.RequestCode;
-import com.sachin.wunderfleet.net.rxtask.ApiTask;
-import com.sachin.wunderfleet.net.rxtask.ApiTaskInit;
+import com.sachin.wunderfleet.api.OnApiResponseListner;
+import com.sachin.wunderfleet.api.RequestCode;
+import com.sachin.wunderfleet.api.rxtask.ApiTaskInit;
 import com.sachin.wunderfleet.utilities.AppUtilsMethods;
-
-import org.json.JSONArray;
-import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
-import static androidx.core.content.ContextCompat.checkSelfPermission;
-import static androidx.core.content.ContextCompat.getCodeCacheDir;
-
-public class MapFragment extends Fragment implements OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
+public class MapPinFragment extends Fragment implements OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
     private static final int PERMISSION_ID = 1001;
+    public static final int REFRESH_PINS = 1002;
     private GoogleMap mMap;
     private Context mcontext;
     private FusedLocationProviderClient mFusedLocationClient;
@@ -83,7 +66,7 @@ public class MapFragment extends Fragment implements OnApiResponseListner, OnMap
     private Location userLocation;
     private ProgressDialog mProgressDialog;
     private HashMap<Integer, Marker> mapMarker;
-    private int click=0;
+    private int click = 0;
 
     @Override
     public void onAttach(Context context) {
@@ -106,7 +89,6 @@ public class MapFragment extends Fragment implements OnApiResponseListner, OnMap
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(mcontext);
         initProgressbar();
         getLastLocation();
-
     }
 
     @Override
@@ -270,7 +252,7 @@ public class MapFragment extends Fragment implements OnApiResponseListner, OnMap
 
     public void initializeApiCall() {
         if (AppUtilsMethods.isNetworkAvailable(mcontext)) {
-            showProgress("Fetching api, please wait...");
+            showProgress("Please wait...");
             new ApiTaskInit().getApiTask().getAllCarObjects(this);
         } else {
             AppUtilsMethods.showAlertDialog(mcontext, "No internet available", "Please check your internet connection and try again.");
@@ -309,18 +291,22 @@ public class MapFragment extends Fragment implements OnApiResponseListner, OnMap
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        if(click==0) {
-            System.out.println("----getmarker---- " + marker.getTitle() + "|" + marker.getTag());
+        if (marker != null) {
+            if ((Integer) marker.getTag() == 000) {
+                return false;
+            }
+        }
+        if (click == 0) {
             Map<Integer, Marker> map = mapMarker;
             map.remove((Integer) marker.getTag());
             for (Marker value : map.values()) {
-                value.setVisible(false);
+                value.remove();
             }
-            click=1;
-        }else{
+            click = 1;
+        } else {
             FragmentManager fm = getChildFragmentManager();
             CarDetailsDialogFragment carDetailsDialogFragment = CarDetailsDialogFragment.newInstance((Integer) marker.getTag());
-            carDetailsDialogFragment.show(fm,"custom_dialog");
+            carDetailsDialogFragment.show(fm, "custom_dialog");
         }
         return false;
 

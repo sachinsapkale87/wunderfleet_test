@@ -1,11 +1,7 @@
-package com.sachin.wunderfleet.view;
+package com.sachin.wunderfleet;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import android.content.Context;
@@ -14,22 +10,20 @@ import android.os.Handler;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
-import com.sachin.wunderfleet.R;
-import com.sachin.wunderfleet.fragments.MapFragment;
-import com.sachin.wunderfleet.fragments.SplashScreenFragment;
-import com.sachin.wunderfleet.net.rxtask.ApiTask;
+import com.sachin.wunderfleet.fragments.MapPinFragment;
+import com.sachin.wunderfleet.fragments.SplashFragment;
+import com.sachin.wunderfleet.api.ApiClientSingleton;
 
-import java.util.ArrayList;
 import java.util.Stack;
 
 public class MainActivity extends AppCompatActivity {
 
-    private FragmentManager fragmentManager;
     private FrameLayout frameLayoutContainer;
-    private FragmentTransaction fragmentTransaction;
     private Stack<Fragment> fragmentStack;
     private boolean doubleBackToExitPressedOnce = false;
     private Context mcontext;
+    private SplashFragment splashFragment;
+    private MapPinFragment mapFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,37 +37,39 @@ public class MainActivity extends AppCompatActivity {
     private void initializeView() {
         frameLayoutContainer = (FrameLayout) findViewById(R.id.container);
         fragmentStack = new Stack<Fragment>();
-        Fragment splashFragment = new SplashScreenFragment();
-        loadFragments(splashFragment, true, false, null);
+        loadSplashScreen();
     }
 
-    public void loadFragments(Fragment fragment, boolean addtobackstack, boolean replace, Bundle bundle) {
-        fragmentManager = getSupportFragmentManager();
-        fragmentTransaction = fragmentManager.beginTransaction();
-        if(!(fragment instanceof SplashScreenFragment)){
-            fragmentTransaction.setCustomAnimations(R.anim.enter_from_right, R.anim.hold);
+    public void loadSplashScreen() {
+        if (splashFragment == null) {
+            splashFragment = new SplashFragment();
         }
-        if(fragment instanceof MapFragment){
-            fragmentStack.clear();
+        if (splashFragment.isAdded()) {
+            return;
         }
 
-        if (replace) {
-            fragmentTransaction.replace(R.id.container, fragment);
-        } else {
-            fragmentTransaction.add(R.id.container, fragment);
-        }
-        if (bundle != null)
-            fragment.setArguments(bundle);
-        if (addtobackstack) {
-            fragmentTransaction.addToBackStack("FRAG");
-        }
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.add(frameLayoutContainer.getId(), splashFragment);
         if (fragmentStack.size() > 0) {
             fragmentStack.lastElement().onPause();
-            fragmentTransaction.hide(fragmentStack.lastElement());
+            ft.hide(fragmentStack.lastElement());
         }
-        fragmentStack.push(fragment);
+        fragmentStack.push(splashFragment);
+        ft.commitAllowingStateLoss();
+    }
 
-        fragmentTransaction.commit();
+    public void loadMapView() {
+        mapFragment = new MapPinFragment();
+
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        if (fragmentStack.size() > 0) {
+            ft.remove(fragmentStack.lastElement());
+        }
+        fragmentStack.clear();
+        ft.setCustomAnimations(R.anim.enter_from_right, R.anim.hold);
+        ft.add(frameLayoutContainer.getId(), mapFragment);
+        fragmentStack.push(mapFragment);
+        ft.commitAllowingStateLoss();
     }
 
     @Override
@@ -94,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
             ft.show(lastFragment);
             ft.commit();
         } else {
-             this.doubleBackToExitPressedOnce = true;
+            this.doubleBackToExitPressedOnce = true;
             Toast.makeText(mcontext, "Click again to exit", Toast.LENGTH_SHORT).show();
 
             new Handler().postDelayed(new Runnable() {
@@ -107,5 +103,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ApiClientSingleton.resetRetrofitInstance();
     }
 }

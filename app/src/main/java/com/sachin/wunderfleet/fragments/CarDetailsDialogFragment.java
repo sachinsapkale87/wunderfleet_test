@@ -2,6 +2,7 @@ package com.sachin.wunderfleet.fragments;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -18,17 +19,14 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 
 import com.bumptech.glide.Glide;
-import com.google.android.gms.common.api.Api;
+import com.sachin.wunderfleet.MainActivity;
 import com.sachin.wunderfleet.R;
 import com.sachin.wunderfleet.model.CarModel;
 import com.sachin.wunderfleet.model.QuickRentResponseModel;
-import com.sachin.wunderfleet.net.ApiClientSingleton;
-import com.sachin.wunderfleet.net.OnApiResponseListner;
-import com.sachin.wunderfleet.net.RequestCode;
-import com.sachin.wunderfleet.net.rxtask.ApiTaskInit;
+import com.sachin.wunderfleet.api.OnApiResponseListner;
+import com.sachin.wunderfleet.api.RequestCode;
+import com.sachin.wunderfleet.api.rxtask.ApiTaskInit;
 import com.sachin.wunderfleet.utilities.AppUtilsMethods;
-
-import java.util.HashMap;
 
 public class CarDetailsDialogFragment extends DialogFragment implements OnApiResponseListner, View.OnClickListener {
     private Context mcontext;
@@ -158,10 +156,7 @@ public class CarDetailsDialogFragment extends DialogFragment implements OnApiRes
 
             case R.id.qrent_btn:
                 showProgress("Please wait...");
-                HashMap<String, Object> body = new HashMap<>();
-                body.put("carId", carId);
-                ApiClientSingleton.setToken("df7c313b47b7ef87c64c0f5f5cebd6086bbb0fa");
-                new ApiTaskInit().getApiTask().quickRent(body, this);
+                new ApiTaskInit().getApiTask().quickRent(carId, this);
                 break;
         }
     }
@@ -230,5 +225,13 @@ public class CarDetailsDialogFragment extends DialogFragment implements OnApiRes
                 AppUtilsMethods.showAlertDialog(mcontext, "Something went wrong.", "Please try again to quick-rent...");
             }
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Intent intent = new Intent(getActivity(),
+                MainActivity.class);
+        getActivity().startActivityForResult(intent , MapPinFragment.REFRESH_PINS);
     }
 }

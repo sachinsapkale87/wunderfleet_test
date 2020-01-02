@@ -1,19 +1,17 @@
-package com.sachin.wunderfleet.net.rxtask;
+package com.sachin.wunderfleet.api.rxtask;
 
-import com.sachin.wunderfleet.net.ApiCallBack;
-import com.sachin.wunderfleet.net.ApiClientSingleton;
-import com.sachin.wunderfleet.net.OnApiResponseListner;
-import com.sachin.wunderfleet.net.RequestCode;
-import com.sachin.wunderfleet.net.RetryWithDelay;
-import com.sachin.wunderfleet.net.callinterface.ApiCall;
+import com.sachin.wunderfleet.api.ApiCallBack;
+import com.sachin.wunderfleet.api.ApiClientSingleton;
+import com.sachin.wunderfleet.api.OnApiResponseListner;
+import com.sachin.wunderfleet.api.RequestCode;
+import com.sachin.wunderfleet.api.RetryWithDelay;
+import com.sachin.wunderfleet.api.callinterface.ApiCall;
 
 import java.util.HashMap;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
-import okhttp3.MediaType;
-import okhttp3.RequestBody;
 import retrofit2.Retrofit;
 
 public class ApiTask {
@@ -26,6 +24,7 @@ public class ApiTask {
     }
 
     public Observable<?> getAllCarObjects(OnApiResponseListner onApiResponseListner) {
+        ApiClientSingleton.setToken("");
         Observable<?> callApi = apiCall.getAllCarObjects()
                 .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .retryWhen(new RetryWithDelay(0, 3000));
@@ -33,7 +32,8 @@ public class ApiTask {
         return callApi;
     }
 
-    public Observable<?> getCarObjectsById(int car_id,OnApiResponseListner onApiResponseListner) {
+    public Observable<?> getCarObjectsById(int car_id, OnApiResponseListner onApiResponseListner) {
+        ApiClientSingleton.setToken("");
         Observable<?> callApi = apiCall.getCarObjectsById(car_id)
                 .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .retryWhen(new RetryWithDelay(0, 3000));
@@ -41,9 +41,11 @@ public class ApiTask {
         return callApi;
     }
 
-   public Observable<?> quickRent(HashMap<String, Object> hashMap,
-                                  OnApiResponseListner onApiResponseListner) {
-        Observable<?> callApi = apiCall.callQuickRent(hashMap)
+    public Observable<?> quickRent(int id, OnApiResponseListner onApiResponseListner) {
+        HashMap<String, Object> body = new HashMap<>();
+        body.put("carId", id);
+        ApiClientSingleton.setToken("df7c313b47b7ef87c64c0f5f5cebd6086bbb0fa");
+        Observable<?> callApi = apiCall.callQuickRent(body)
                 .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .retryWhen(new RetryWithDelay(0, 3000));
         callApi.subscribe(new ApiCallBack(onApiResponseListner, RequestCode.POST_QUICK_RENT));

@@ -1,8 +1,8 @@
-package com.sachin.wunderfleet.net.callinterface;
+package com.sachin.wunderfleet.api.callinterface;
 
 import com.sachin.wunderfleet.model.CarModel;
 import com.sachin.wunderfleet.model.QuickRentResponseModel;
-import com.sachin.wunderfleet.net.WebAPI;
+import com.sachin.wunderfleet.api.WebAPI;
 
 import java.util.HashMap;
 import java.util.List;

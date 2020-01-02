@@ -1,4 +1,4 @@
-package com.sachin.wunderfleet.net.rxtask;
+package com.sachin.wunderfleet.api.rxtask;
 
 
 public class ApiTaskInit {

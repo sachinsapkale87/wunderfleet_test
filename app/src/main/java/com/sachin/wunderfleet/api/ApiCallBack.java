@@ -1,7 +1,5 @@
-package com.sachin.wunderfleet.net;
+package com.sachin.wunderfleet.api;
 
-
-import com.sachin.wunderfleet.net.OnApiResponseListner;
 
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
