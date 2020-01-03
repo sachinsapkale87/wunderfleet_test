@@ -30,13 +30,13 @@ public class SplashFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        compositeDisposable = new CompositeDisposable();
         return getView() != null ? getView() : inflater.inflate(R.layout.fragment_splash, container, false);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        compositeDisposable = new CompositeDisposable();
         compositeDisposable.add(Observable
                 .timer(1200, TimeUnit.MILLISECONDS)
                 .subscribe(new Consumer<Long>() {
@@ -46,13 +46,11 @@ public class SplashFragment extends Fragment {
                     }
                 }));
 
-        System.out.println("-----splash----onResume");
     }
 
     @Override
     public void onPause() {
         super.onPause();
         compositeDisposable.dispose();
-        System.out.println("-----splash----onstop");
     }
 }

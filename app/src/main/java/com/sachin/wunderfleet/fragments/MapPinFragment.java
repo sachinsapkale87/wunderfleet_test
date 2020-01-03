@@ -2,9 +2,12 @@ package com.sachin.wunderfleet.fragments;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -36,6 +39,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.sachin.wunderfleet.R;
@@ -44,6 +48,7 @@ import com.sachin.wunderfleet.api.OnApiResponseListner;
 import com.sachin.wunderfleet.api.RequestCode;
 import com.sachin.wunderfleet.api.rxtask.ApiTaskInit;
 import com.sachin.wunderfleet.utilities.AppUtilsMethods;
+import com.sachin.wunderfleet.utilities.Constants;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,8 +62,7 @@ import io.reactivex.schedulers.Schedulers;
 
 public class MapPinFragment extends Fragment implements OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
-    private static final int PERMISSION_ID = 1001;
-    public static final int REFRESH_PINS = 1002;
+    private int PERMISSION_ID = 1001;
     private GoogleMap mMap;
     private Context mcontext;
     private FusedLocationProviderClient mFusedLocationClient;
@@ -67,6 +71,7 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
     private ProgressDialog mProgressDialog;
     private HashMap<Integer, Marker> mapMarker;
     private int click = 0;
+    private Marker userMarker;
 
     @Override
     public void onAttach(Context context) {
@@ -80,6 +85,7 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
         View view = inflater.inflate(R.layout.fragment_mapview, container, false);
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.frg);
         mapFragment.getMapAsync(this);
+        mcontext.registerReceiver(loadLocationBroadCast, new IntentFilter(Constants.LoadLocationBroadCast));
         return view;
     }
 
@@ -94,6 +100,7 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
     @Override
     public void onResponseComplete(Object clsGson, int requestCode, int responseCode) {
         if (requestCode == RequestCode.GET_CAR_OBJECTS_ALL) {
+            click = 0;
             stopProgress();
             Observable.fromIterable((ArrayList<CarModel>) clsGson)
                     .subscribeOn(Schedulers.io())
@@ -106,12 +113,15 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
                             mapMarker = new HashMap<>();
                             builder = new LatLngBounds.Builder();
                             if (userLocation != null) {
-                                Marker userMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(
+                                userMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(
                                         userLocation.getLatitude(), userLocation.getLongitude())).title("You are here")
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)));
                                 userMarker.setTag(000);
                                 mapMarker.put(000, userMarker);
                                 builder.include(userMarker.getPosition());
+                                if (mFusedLocationClient != null) {
+                                    mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+                                }
                             }
                         }
 
@@ -183,6 +193,9 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
         if (requestCode == PERMISSION_ID) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getLastLocation();
+            } else {
+                Toast.makeText(mcontext, "User location permission denied", Toast.LENGTH_SHORT).show();
+                initializeApiCall();
             }
         }
     }
@@ -299,10 +312,17 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
         if (click == 0) {
             Map<Integer, Marker> map = mapMarker;
             map.remove((Integer) marker.getTag());
+            map.remove(000);
             for (Marker value : map.values()) {
                 value.remove();
             }
             click = 1;
+            if (userMarker != null) {
+                mMap.addPolyline(new PolylineOptions()
+                        .add(userMarker.getPosition(), marker.getPosition())
+                        .width(5)
+                        .color(Color.RED));
+            }
         } else {
             FragmentManager fm = getChildFragmentManager();
             CarDetailsDialogFragment carDetailsDialogFragment = CarDetailsDialogFragment.newInstance((Integer) marker.getTag());
@@ -311,4 +331,24 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
         return false;
 
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        try {
+            mcontext.unregisterReceiver(loadLocationBroadCast);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public BroadcastReceiver loadLocationBroadCast = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent != null && intent.getBooleanExtra("loadlist", false) == true) {
+                mMap.clear();
+                initializeApiCall();
+        }
+        }
+    };
 }

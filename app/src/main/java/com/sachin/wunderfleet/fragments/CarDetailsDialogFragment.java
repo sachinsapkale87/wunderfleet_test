@@ -1,7 +1,9 @@
 package com.sachin.wunderfleet.fragments;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -27,6 +29,8 @@ import com.sachin.wunderfleet.api.OnApiResponseListner;
 import com.sachin.wunderfleet.api.RequestCode;
 import com.sachin.wunderfleet.api.rxtask.ApiTaskInit;
 import com.sachin.wunderfleet.utilities.AppUtilsMethods;
+import com.sachin.wunderfleet.utilities.Constants;
+
 
 public class CarDetailsDialogFragment extends DialogFragment implements OnApiResponseListner, View.OnClickListener {
     private Context mcontext;
@@ -219,19 +223,35 @@ public class CarDetailsDialogFragment extends DialogFragment implements OnApiRes
         protected void onPostExecute(QuickRentResponseModel quickRentResponseModel) {
             super.onPostExecute(quickRentResponseModel);
             if (quickRentResponseModel != null) {
-                dismiss();
-                AppUtilsMethods.showAlertDialog(mcontext, "Success!", "Quick-rent is confirmed. Your reservation id is " + quickRentResponseModel.getReservationId());
+                showSuccessAlertDialog(mcontext, "Success!", "Quick-rent is confirmed. Your reservation id is " + quickRentResponseModel.getReservationId());
             } else {
                 AppUtilsMethods.showAlertDialog(mcontext, "Something went wrong.", "Please try again to quick-rent...");
             }
         }
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Intent intent = new Intent(getActivity(),
-                MainActivity.class);
-        getActivity().startActivityForResult(intent , MapPinFragment.REFRESH_PINS);
+    private void showSuccessAlertDialog(Context context, String title, String msg) {
+        try {
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setMessage(msg)
+                    .setCancelable(false)
+                    .setNeutralButton("Dismiss", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            dialog.dismiss();
+                            dismiss();
+                            Intent intent = new Intent(Constants.LoadLocationBroadCast);
+                            intent.putExtra("loadlist", true);
+                            mcontext.sendBroadcast(intent);
+                        }
+                    });
+
+
+            //Creating dialog box
+            AlertDialog alert = builder.create();
+            alert.setTitle(title);
+            alert.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
