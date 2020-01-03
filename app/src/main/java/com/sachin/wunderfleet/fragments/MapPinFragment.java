@@ -16,6 +16,8 @@ import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -60,7 +62,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
-public class MapPinFragment extends Fragment implements OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
+public class MapPinFragment extends Fragment implements  View.OnClickListener, OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
     private int PERMISSION_ID = 1001;
     private GoogleMap mMap;
@@ -72,6 +74,7 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
     private HashMap<Integer, Marker> mapMarker;
     private int click = 0;
     private Marker userMarker;
+    private ImageView ref_btn;
 
     @Override
     public void onAttach(Context context) {
@@ -84,6 +87,8 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_mapview, container, false);
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.frg);
+        ref_btn = (ImageView) view.findViewById(R.id.ref_btn);
+        ref_btn.setOnClickListener(this);
         mapFragment.getMapAsync(this);
         mcontext.registerReceiver(loadLocationBroadCast, new IntentFilter(Constants.LoadLocationBroadCast));
         return view;
@@ -351,4 +356,15 @@ public class MapPinFragment extends Fragment implements OnApiResponseListner, On
         }
         }
     };
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+
+            case R.id.ref_btn:
+                getLastLocation();
+                break;
+
+        }
+    }
 }
