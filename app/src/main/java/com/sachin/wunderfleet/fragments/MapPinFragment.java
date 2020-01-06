@@ -19,11 +19,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -56,14 +58,17 @@ import com.sachin.wunderfleet.api.RequestCode;
 import com.sachin.wunderfleet.api.rxtask.ApiTaskInit;
 import com.sachin.wunderfleet.utilities.AppUtilsMethods;
 import com.sachin.wunderfleet.utilities.Constants;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
 public class MapPinFragment extends Fragment implements View.OnClickListener, OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
@@ -109,13 +114,11 @@ public class MapPinFragment extends Fragment implements View.OnClickListener, On
         mFusedLocationClient = getFusedLocationProviderClient(mcontext);
         mSettingsClient = LocationServices.getSettingsClient(mcontext);
         initProgressbar();
-       createLocationCallback();
-       createLocationRequest();
-       buildLocationSettingsRequest();
-       getLastLocation();
+        createLocationCallback();
+        createLocationRequest();
+        buildLocationSettingsRequest();
+        getLastLocation();
     }
-
-
 
 
     private void buildLocationSettingsRequest() {
@@ -136,7 +139,7 @@ public class MapPinFragment extends Fragment implements View.OnClickListener, On
                 super.onLocationResult(locationResult);
                 if (locationResult != null && locationResult.getLastLocation() != null) {
                     userLocation = locationResult.getLastLocation();
-                   initializeApiCall();
+                    initializeApiCall();
                 }
 
             }
@@ -251,7 +254,7 @@ public class MapPinFragment extends Fragment implements View.OnClickListener, On
     private void getLastLocation() {
         if (checkPermissions()) {
             if (isLocationEnabled()) {
-               startLocationUpdates();
+                startLocationUpdates();
             } else {
                 startLocationUpdates();
             }
@@ -386,11 +389,11 @@ public class MapPinFragment extends Fragment implements View.OnClickListener, On
                                     ResolvableApiException rae = (ResolvableApiException) e;
                                     rae.startResolutionForResult(getActivity(), REQUEST_CHECK_SETTINGS);
                                 } catch (IntentSender.SendIntentException sie) {
-                                  e.printStackTrace();
+                                    e.printStackTrace();
                                 }
                                 break;
                             case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                                Toast.makeText(mcontext,"Unable to fetch user location",Toast.LENGTH_SHORT).show();
+                                Toast.makeText(mcontext, "Unable to fetch user location", Toast.LENGTH_SHORT).show();
                                 initializeApiCall();
                         }
 
@@ -409,7 +412,7 @@ public class MapPinFragment extends Fragment implements View.OnClickListener, On
                         break;
                     case Activity.RESULT_CANCELED:
 
-                        Toast.makeText(mcontext,"Permission denied",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mcontext, "Permission denied", Toast.LENGTH_SHORT).show();
                         initializeApiCall();
                         break;
                 }

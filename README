@@ -8,11 +8,16 @@ I've completed the task implementing the following:
 - Small test case to parse location
 
 1. Describe possible performance optimizations for your Code.
--Used RxJava for avoiding use of Asynctask in some cases as Rxjava pattern is more lifecycle aware
--Used FusedLocationProviderClient to fetch user last location to optimize battery usage
-
+- Used RxJava for avoiding use of Asynctask in some cases as Rxjava pattern is more lifecycle aware
+- Used FusedLocationProviderClient to fetch user last location to optimize battery usage
 
 2. Which things could be done better, than you’ve done it?
--I've used CompositeDisposable in splash screen page only.
-As maintaining CompositeDisposable for different observers is quite tricky.
--I think having all observer(api+datasets) under one composite disposable would be fun doing as we can initiate and destroy all together.
+- I've used CompositeDisposable in splash screen page only. As maintaining CompositeDisposable for different observers is quite tricky.
+- I think having all observer(api+datasets) under one composite disposable would be fun doing as we can initiate and destroy all together.
+- I've not written a test case for Retrofit + RxJava yet as I haven't found any archietecture for it yet.
+
+
+Why MVP?
+- Apart from clean code base, MVP provides with maintainable , test proof and robust app. I used mvp here to clean the context of the app away from view and presenter just to keep new integration and dependablilty easy. It would be easy to implement new features without hampering previous code and performance.
+- Testing the app is quite easy now as dependency between view and presenter is compleletely difference
+- Interfaces provide base for this archietecture.
