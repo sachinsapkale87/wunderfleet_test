@@ -3,14 +3,16 @@ This is a test project for Wunder Mobility.
 I've completed the task implementing the following:
 - MVP framework + Java native code
 - Retrofit + Rxjava + Gson for consuming API
-- Rxjava for handling some dataset(avoiding use of Asynctask in some cases as Rxjava pattern is more lifecycle aware)
+- Rxjava for handling some dataset
 - Google Maps for drawing the pins
 - Small test case to parse location
 
 1. Describe possible performance optimizations for your Code.
+-Used RxJava for avoiding use of Asynctask in some cases as Rxjava pattern is more lifecycle aware
+-Used FusedLocationProviderClient to fetch user last location to optimize battery usage
 
 
 2. Which things could be done better, than you’ve done it?
-I've used CompositeDisposable in splash screen page only.
+-I've used CompositeDisposable in splash screen page only.
 As maintaining CompositeDisposable for different observers is quite tricky.
-I think having all observer(api+datasets) under one composite disposable would be fun doing as we can initiate and destroy all together.
+-I think having all observer(api+datasets) under one composite disposable would be fun doing as we can initiate and destroy all together.

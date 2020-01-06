@@ -1,36 +1,41 @@
 package com.sachin.wunderfleet.fragments;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
-import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResponse;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -42,8 +47,8 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.sachin.wunderfleet.R;
 import com.sachin.wunderfleet.model.CarModel;
 import com.sachin.wunderfleet.api.OnApiResponseListner;
@@ -51,19 +56,19 @@ import com.sachin.wunderfleet.api.RequestCode;
 import com.sachin.wunderfleet.api.rxtask.ApiTaskInit;
 import com.sachin.wunderfleet.utilities.AppUtilsMethods;
 import com.sachin.wunderfleet.utilities.Constants;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
-public class MapPinFragment extends Fragment implements  View.OnClickListener, OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
+public class MapPinFragment extends Fragment implements View.OnClickListener, OnApiResponseListner, OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
+    private static final int REQUEST_CHECK_SETTINGS = 1002;
     private int PERMISSION_ID = 1001;
     private GoogleMap mMap;
     private Context mcontext;
@@ -75,6 +80,10 @@ public class MapPinFragment extends Fragment implements  View.OnClickListener, O
     private int click = 0;
     private Marker userMarker;
     private ImageView ref_btn;
+    private SettingsClient mSettingsClient;
+    private LocationCallback mLocationCallback;
+    private LocationRequest mLocationRequest;
+    private LocationSettingsRequest mLocationSettingsRequest;
 
     @Override
     public void onAttach(Context context) {
@@ -97,9 +106,41 @@ public class MapPinFragment extends Fragment implements  View.OnClickListener, O
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(mcontext);
+        mFusedLocationClient = getFusedLocationProviderClient(mcontext);
+        mSettingsClient = LocationServices.getSettingsClient(mcontext);
         initProgressbar();
-        getLastLocation();
+       createLocationCallback();
+       createLocationRequest();
+       buildLocationSettingsRequest();
+       getLastLocation();
+    }
+
+
+
+
+    private void buildLocationSettingsRequest() {
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addLocationRequest(mLocationRequest);
+        mLocationSettingsRequest = builder.build();
+    }
+
+    private void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    private void createLocationCallback() {
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                if (locationResult != null && locationResult.getLastLocation() != null) {
+                    userLocation = locationResult.getLastLocation();
+                   initializeApiCall();
+                }
+
+            }
+        };
     }
 
     @Override
@@ -124,9 +165,6 @@ public class MapPinFragment extends Fragment implements  View.OnClickListener, O
                                 userMarker.setTag(000);
                                 mapMarker.put(000, userMarker);
                                 builder.include(userMarker.getPosition());
-                                if (mFusedLocationClient != null) {
-                                    mFusedLocationClient.removeLocationUpdates(mLocationCallback);
-                                }
                             }
                         }
 
@@ -187,9 +225,7 @@ public class MapPinFragment extends Fragment implements  View.OnClickListener, O
 
     private void requestPermissions() {
         requestPermissions(
-                new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
-                PERMISSION_ID
-        );
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_ID);
     }
 
     @Override
@@ -215,58 +251,15 @@ public class MapPinFragment extends Fragment implements  View.OnClickListener, O
     private void getLastLocation() {
         if (checkPermissions()) {
             if (isLocationEnabled()) {
-                mFusedLocationClient.getLastLocation().addOnCompleteListener(
-                        new OnCompleteListener<Location>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Location> task) {
-                                Location location = task.getResult();
-                                if (location == null) {
-                                    requestNewLocationData();
-                                } else {
-                                    userLocation = location;
-                                    initializeApiCall();
-                                }
-                            }
-                        }
-                );
+               startLocationUpdates();
             } else {
-                Toast.makeText(mcontext, "Turn on location", Toast.LENGTH_LONG).show();
-                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                startActivity(intent);
+                startLocationUpdates();
             }
         } else {
             requestPermissions();
         }
     }
 
-    private void requestNewLocationData() {
-
-        LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        mLocationRequest.setInterval(0);
-        mLocationRequest.setFastestInterval(0);
-        mLocationRequest.setNumUpdates(1);
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(5000);
-
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(mcontext);
-        mFusedLocationClient.requestLocationUpdates(
-                mLocationRequest, mLocationCallback,
-                Looper.myLooper()
-        );
-
-    }
-
-    private LocationCallback mLocationCallback = new LocationCallback() {
-        @Override
-        public void onLocationResult(LocationResult locationResult) {
-            Location mLastLocation = locationResult.getLastLocation();
-            if (mLastLocation != null) {
-                userLocation = mLastLocation;
-                initializeApiCall();
-            }
-        }
-    };
 
     public void initializeApiCall() {
         if (AppUtilsMethods.isNetworkAvailable(mcontext)) {
@@ -353,7 +346,7 @@ public class MapPinFragment extends Fragment implements  View.OnClickListener, O
             if (intent != null && intent.getBooleanExtra("loadlist", false) == true) {
                 mMap.clear();
                 initializeApiCall();
-        }
+            }
         }
     };
 
@@ -362,9 +355,65 @@ public class MapPinFragment extends Fragment implements  View.OnClickListener, O
         switch (v.getId()) {
 
             case R.id.ref_btn:
-                getLastLocation();
+                initializeApiCall();
                 break;
 
+        }
+    }
+
+    private void startLocationUpdates() {
+        // Begin by checking if the device has the necessary location settings.
+        mSettingsClient.checkLocationSettings(mLocationSettingsRequest)
+                .addOnSuccessListener(getActivity(), new OnSuccessListener<LocationSettingsResponse>() {
+                    @Override
+                    public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
+
+                        //noinspection MissingPermission
+                        mFusedLocationClient.requestLocationUpdates(mLocationRequest,
+                                mLocationCallback, Looper.myLooper());
+
+                    }
+                })
+                .addOnFailureListener(getActivity(), new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        int statusCode = ((ApiException) e).getStatusCode();
+                        switch (statusCode) {
+                            case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                                try {
+                                    // Show the dialog by calling startResolutionForResult(), and check the
+                                    // result in onActivityResult().
+                                    ResolvableApiException rae = (ResolvableApiException) e;
+                                    rae.startResolutionForResult(getActivity(), REQUEST_CHECK_SETTINGS);
+                                } catch (IntentSender.SendIntentException sie) {
+                                  e.printStackTrace();
+                                }
+                                break;
+                            case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                                Toast.makeText(mcontext,"Unable to fetch user location",Toast.LENGTH_SHORT).show();
+                                initializeApiCall();
+                        }
+
+
+                    }
+                });
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_CHECK_SETTINGS:
+                switch (resultCode) {
+                    case Activity.RESULT_OK:
+                        startLocationUpdates();
+                        break;
+                    case Activity.RESULT_CANCELED:
+
+                        Toast.makeText(mcontext,"Permission denied",Toast.LENGTH_SHORT).show();
+                        initializeApiCall();
+                        break;
+                }
+                break;
         }
     }
 }
