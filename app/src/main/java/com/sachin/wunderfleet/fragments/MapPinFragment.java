@@ -13,6 +13,7 @@ import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -408,7 +409,12 @@ public class MapPinFragment extends Fragment implements View.OnClickListener, On
             case REQUEST_CHECK_SETTINGS:
                 switch (resultCode) {
                     case Activity.RESULT_OK:
-                        startLocationUpdates();
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() { // starting the listern on a new thread witha  delay of half second in case the process is very fast for detecting location
+                                startLocationUpdates();
+                            }
+                        }, 500);
                         break;
                     case Activity.RESULT_CANCELED:
 
